@@ -1,0 +1,58 @@
+name: Build APK
+on: push
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            python3-pip python3-dev build-essential \
+            libffi-dev libssl-dev zlib1g-dev \
+            libncurses5-dev libsqlite3-dev \
+            libreadline-dev libbz2-dev \
+            wget curl git zip unzip \
+            openjdk-17-jdk autoconf libtool \
+            pkg-config libltdl-dev cmake
+          pip install buildozer cython
+      
+      - name: Build APK
+        run: |
+          buildozer init
+          cat > buildozer.spec << 'EOF'
+          [app]
+          title = MehreJarf
+          package.name = mehrejarf
+          package.domain = com.mehrejarf
+          source.dir = .
+          source.include_exts = py,wav,mp3,ogg,m4a
+          version = 1.0
+          requirements = python3,kivy
+          orientation = portrait
+          android.permissions = RECORD_AUDIO,READ_EXTERNAL_STORAGE,WRITE_EXTERNAL_STORAGE
+          android.archs = arm64-v8a
+          android.api = 31
+          android.minapi = 21
+          android.ndk = 25b
+          android.accept_sdk_license = True
+          android.allow_backup = True
+          p4a.branch = develop
+          [buildozer]
+          log_level = 2
+          EOF
+          buildozer android debug
+      
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: MehreJarf-APK
+          path: bin/*.apk
